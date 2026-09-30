@@ -5658,11 +5658,7 @@ class MCPServerManager:
         if tool is None:
             return None
         description: Final = server.tool_name_to_description.get(tool.name) if server.tool_name_to_description else None
-        return (
-            tool.model_copy(update={"description": description})  # mutable-ok: model_copy requires a dict update
-            if description is not None
-            else tool
-        )
+        return tool if description is None else tool.model_copy(update=MappingProxyType({"description": description}))
 
     def _create_prefixed_prompts(
         self, prompts: Sequence[Prompt], server: MCPServer, add_prefix: bool = True
@@ -5954,12 +5950,7 @@ class MCPServerManager:
         if proxy_logging_obj is None:
             return hook_result
 
-        inbound_authorization: Final = next(
-            (v for k, v in raw_headers.items() if isinstance(k, str) and k.lower() == "authorization")
-            if raw_headers
-            else (),
-            "",
-        )
+        inbound_authorization: Final = _raw_header_value(raw_headers, "authorization") or ""
         incoming_bearer_token: Final = (
             inbound_authorization[len("bearer ") :] if inbound_authorization.lower().startswith("bearer ") else None
         )
