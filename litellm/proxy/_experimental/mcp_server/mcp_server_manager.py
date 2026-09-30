@@ -5658,7 +5658,11 @@ class MCPServerManager:
         if tool is None:
             return None
         description: Final = server.tool_name_to_description.get(tool.name) if server.tool_name_to_description else None
-        return tool if description is None else tool.model_copy(update={"description": description})
+        return (
+            tool.model_copy(update={"description": description})  # mutable-ok: model_copy requires a dict update
+            if description is not None
+            else tool
+        )
 
     def _create_prefixed_prompts(
         self, prompts: Sequence[Prompt], server: MCPServer, add_prefix: bool = True
@@ -5951,7 +5955,9 @@ class MCPServerManager:
             return hook_result
 
         inbound_authorization: Final = next(
-            (v for k, v in (raw_headers or {}).items() if isinstance(k, str) and k.lower() == "authorization"),
+            (v for k, v in raw_headers.items() if isinstance(k, str) and k.lower() == "authorization")
+            if raw_headers
+            else (),
             "",
         )
         incoming_bearer_token: Final = (
